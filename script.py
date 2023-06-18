@@ -52,10 +52,18 @@ def pdfscrape(pdf):
         'LTTextLineHorizontal:overlaps_bbox("673.8, 192.551, 736.842, 199.551")').text()
     second_to_last_mean_package = pdf.pq(
         'LTTextLineHorizontal:overlaps_bbox("673.8, 209.551, 744.227, 216.551")').text()
+    cat_id = pdf.pq(
+        'LTTextLineHorizontal:overlaps_bbox("10.0, 524.137, 343.657, 533.137")').text()
 
     # Split text
     institute_id = extract_id_from_xml(institute_id)
     institute_name = extract_title_from_xml(institute_name)
+    no_of_mean_package = extract_numeric_value(no_of_mean_package)
+    previous_year_mean_package = extract_numeric_value(
+        previous_year_mean_package)
+    second_to_last_mean_package = extract_numeric_value(
+        second_to_last_mean_package)
+    cat_id = extract_id_from_xml(cat_id)
 
     # To determine the college tier on the basis of mean package
     college_tier = determine_tier(no_of_mean_package)
@@ -78,7 +86,8 @@ def pdfscrape(pdf):
         'previous_year':  previous_year,
         'second_to_last': second_to_last,
         'previous_year_mean_package': previous_year_mean_package,
-        'second_to_last_mean_package': second_to_last_mean_package
+        'second_to_last_mean_package': second_to_last_mean_package,
+        'cat_id': cat_id
     }, index=[0])
     return page
 
@@ -121,6 +130,21 @@ def determine_tier(mean_package):
 def extract_numeric_value(value):
     # Remove non-numeric characters from the value
     value = re.sub('[^0-9.]', '', value)
+
+    # Handle cases where the value contains both numbers and words
+    if value:
+        # Check if the value contains a decimal point
+        if '.' in value:
+            # Split the value into integer and fractional parts
+            integer_part, fractional_part = value.split('.')
+            # Remove any non-numeric characters from the integer part
+            integer_part = re.sub('[^0-9]', '', integer_part)
+            # Combine the cleaned integer and fractional parts
+            value = f"{integer_part}.{fractional_part}"
+        else:
+            # Remove any non-numeric characters
+            value = re.sub('[^0-9]', '', value)
+
     return value
 
 
@@ -138,21 +162,16 @@ for filename in os.listdir(input_folder_path):
         institute_id = os.path.splitext(filename)[0]
         # Converting PDF into an Extensible Markup Language (XML), which includes data and metadata of a given PDF page
         pdf = pdfquery.PDFQuery(file_path)
-        pdf.load()
-        # ('pdfXML.txt', pretty_print=True) is a performance bottleneck when scraping large number of pdfs, remove it after allocating the coordinates
-        pdf.tree.write('pdfXML.txt')
+        pdf.load(0)  # Load only the first page
+        # pdf.tree.write('pdfXML.txt', pretty_print=True) is a performance bottleneck when scraping large number of pdfs, remove it after allocating the coordinates
+        pdf.tree.write('pdfXML.txt', pretty_print=True)
 
-        pagecount = pdf.doc.catalog['Pages'].resolve()['Count']
-        master = pd.DataFrame()
-
-        for p in range(pagecount):
-            pdf.load(p)
-            page = pdfscrape(pdf)
-            master = pd.concat([master, page], ignore_index=True)
+        # Scrape the first page
+        page = pdfscrape(pdf)
 
         # Save to output.csv without leaving lines between them
         with open(output_file, 'a', newline='') as f:
             writer = csv.writer(f)
             if f.tell() == 0:
-                writer.writerow(master.columns)
-            writer.writerow(master.values.flatten())
+                writer.writerow(page.columns)
+            writer.writerow(page.values.flatten())
