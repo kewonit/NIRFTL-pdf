@@ -1,4 +1,4 @@
-# nirfpdf
+# NIRFTL-pdf
 
 Extracting data from nirf pdfs using pdfquery &amp; pandas
 
