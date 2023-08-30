@@ -12,5 +12,3 @@ and then combined all scraped information into single observation.
 In the following, we write a function to use “pdf.pq(‘LTTextLineHorizontal:overlaps_bbox(“#, #, #, #”)’).text()” to extract the data inside each textbox, then use pandas to construct a dataframe.
 
 [More info at this blog](https://towardsdatascience.com/scrape-data-from-pdf-files-using-python-and-pdfquery-d033721c3b28)
-
-BTW this is built just for BTECH (Engineering) NIRF data!
